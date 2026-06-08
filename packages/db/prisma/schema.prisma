@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  OWNER
+  MEMBER
+}
+
+enum EventType {
+  COMMIT
+  PR_OPENED
+  PR_MERGED
+  PR_REVIEWED
+  ISSUE_OPENED
+  ISSUE_CLOSED
+  BRANCH_CREATED
+  TAG_CREATED
+}
+
+model Organization {
+  id              String   @id @default(cuid())
+  githubOrgId     String?  @unique
+  name            String
+  installationId  String?
+  webhookSecret   String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  members      OrgMembership[]
+  repositories Repository[]
+  events       Event[]
+  sprints      Sprint[]
+
+  @@map("organizations")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  githubId  String   @unique
+  username  String
+  avatarUrl String?
+  email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships OrgMembership[]
+  events      Event[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  orgId     String?
+  tokenHash String    @unique
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model OrgMembership {
+  id        String    @id @default(cuid())
+  userId    String
+  orgId     String
+  role      UserRole  @default(MEMBER)
+  joinedAt  DateTime  @default(now())
+  deletedAt DateTime?
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId])
+  @@map("org_memberships")
+}
+
+model Repository {
+  id           String   @id @default(cuid())
+  githubRepoId String
+  name         String
+  fullName     String
+  orgId        String
+  isActive     Boolean  @default(true)
+  openPRCount  Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  org    Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  events Event[]
+
+  @@unique([githubRepoId, orgId])
+  @@index([orgId])
+  @@map("repositories")
+}
+
+model Event {
+  id               String    @id @default(cuid())
+  type             EventType
+  githubId         String
+  githubDeliveryId String    @unique
+  actorId          String
+  repoId           String
+  orgId            String
+  metadata         Json      @default("{}")
+  occurredAt       DateTime
+  createdAt        DateTime  @default(now())
+
+  actor User         @relation(fields: [actorId], references: [id])
+  repo  Repository   @relation(fields: [repoId], references: [id])
+  org   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, occurredAt])
+  @@index([orgId, type])
+  @@index([actorId])
+  @@index([repoId, occurredAt])
+  @@map("events")
+}
+
+model Sprint {
+  id         String   @id @default(cuid())
+  orgId      String
+  name       String
+  startDate  DateTime
+  endDate    DateTime
+  goalPoints Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  org     Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  metrics SprintMetric[]
+
+  @@index([orgId, startDate, endDate])
+  @@map("sprints")
+}
+
+model SprintMetric {
+  id         String   @id @default(cuid())
+  sprintId   String
+  date       DateTime @db.Date
+  velocity   Int      @default(0)
+  burndown   Int      @default(0)
+  openPRs    Int      @default(0)
+  mergedPRs  Int      @default(0)
+  commits    Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  sprint Sprint @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+
+  @@unique([sprintId, date])
+  @@map("sprint_metrics")
+}
