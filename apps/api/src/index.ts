@@ -70,22 +70,39 @@ app.use(
   }),
 );
 
-app.get('/health', async (_req, res) => {
+app.get('/health', (_req, res) => {
+  // Liveness probe — respond immediately (Railway healthcheck must not wait on DB/Redis)
+  res.status(200).json({
+    status: 'ok',
+    uptime: Math.floor((Date.now() - startTime) / 1000),
+  });
+});
+
+app.get('/health/ready', async (_req, res) => {
   let dbHealthy = false;
   let redisHealthy = false;
 
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await Promise.race([
+      prisma.$queryRaw`SELECT 1`,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('db timeout')), 3000)),
+    ]);
     dbHealthy = true;
   } catch {
     dbHealthy = false;
   }
 
-  redisHealthy = await checkRedisHealth();
+  try {
+    redisHealthy = await Promise.race([
+      checkRedisHealth(),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 3000)),
+    ]);
+  } catch {
+    redisHealthy = false;
+  }
 
   const status = dbHealthy && redisHealthy ? 'ok' : dbHealthy || redisHealthy ? 'degraded' : 'error';
 
-  // Railway liveness: always 200 when the process is up (status in body for ops)
   res.status(200).json({
     status,
     db: dbHealthy,
@@ -156,8 +173,17 @@ void warnUnencryptedWebhookSecrets().catch((err) => {
   );
 });
 
-httpServer.listen(env.PORT, () => {
-  console.log(JSON.stringify({ level: 'info', message: `API server running on port ${env.PORT}` }));
+const port = Number(process.env.PORT) || env.PORT;
+
+httpServer.listen({ port, host: '0.0.0.0' }, () => {
+  console.log(
+    JSON.stringify({
+      level: 'info',
+      message: `API server running on 0.0.0.0:${port}`,
+      port,
+      envPort: process.env.PORT ?? null,
+    }),
+  );
 });
 
 export default app;

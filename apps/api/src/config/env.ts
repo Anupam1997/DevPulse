@@ -2,9 +2,11 @@ import { config } from 'dotenv';
 import { resolve } from 'path';
 import { z } from 'zod';
 
-// Load monorepo root .env (works from src/ and dist/ at runtime)
-config({ path: resolve(__dirname, '../../../../.env') });
-config({ path: resolve(__dirname, '../../../.env') });
+// Do not load .env files in production — Railway/Vercel inject env vars directly
+if (process.env.NODE_ENV !== 'production') {
+  config({ path: resolve(__dirname, '../../../../.env') });
+  config({ path: resolve(__dirname, '../../../.env') });
+}
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),

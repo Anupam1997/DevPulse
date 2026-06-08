@@ -33,8 +33,9 @@ echo ""
 echo "[1] Health check"
 HEALTH=$(curl -sf "$API/health")
 check "health status ok" "echo '$HEALTH' | grep -q '\"status\":\"ok\"'"
-check "database connected" "echo '$HEALTH' | grep -q '\"db\":true'"
-check "redis connected" "echo '$HEALTH' | grep -q '\"redis\":true'"
+READY=$(curl -sf "$API/health/ready")
+check "database connected" "echo '$READY' | grep -q '\"db\":true'"
+check "redis connected" "echo '$READY' | grep -q '\"redis\":true'"
 echo ""
 
 echo "[2] Auth — login + create org"

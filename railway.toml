@@ -5,6 +5,5 @@ builder = "DOCKERFILE"
 dockerfilePath = "apps/api/Dockerfile"
 
 [deploy]
-startCommand = "node dist/index.js"
 healthcheckPath = "/health"
 healthcheckTimeout = 120
