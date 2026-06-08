@@ -143,7 +143,7 @@ When ngrok restarts, the URL changes — re-register the webhook in GitHub Org S
 ## Deployment
 
 - **Frontend**: Deploy `apps/web` to Vercel (see root `vercel.json`)
-- **Backend**: Deploy `apps/api` to Railway (see `apps/api/railway.toml`) with Postgres + Redis add-ons. Set the Railway service **root directory to the monorepo root** (not `apps/api/`); `railway.toml` uses `dockerfilePath = "apps/api/Dockerfile"` relative to that root.
+- **Backend**: Deploy `apps/api` to Railway (see root `railway.toml`) with Postgres + Redis add-ons. Set the Railway service **root directory to the monorepo root** (not `apps/api/`); `railway.toml` uses `dockerfilePath = "apps/api/Dockerfile"` relative to that root.
 
 ### Railway environment variables
 
