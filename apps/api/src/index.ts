@@ -85,7 +85,8 @@ app.get('/health', async (_req, res) => {
 
   const status = dbHealthy && redisHealthy ? 'ok' : dbHealthy || redisHealthy ? 'degraded' : 'error';
 
-  res.status(status === 'error' ? 503 : 200).json({
+  // Railway liveness: always 200 when the process is up (status in body for ops)
+  res.status(200).json({
     status,
     db: dbHealthy,
     redis: redisHealthy,
@@ -145,7 +146,15 @@ async function warnUnencryptedWebhookSecrets(): Promise<void> {
   }
 }
 
-void warnUnencryptedWebhookSecrets();
+void warnUnencryptedWebhookSecrets().catch((err) => {
+  console.error(
+    JSON.stringify({
+      level: 'error',
+      message: 'Startup webhook secret check failed',
+      error: err instanceof Error ? err.message : String(err),
+    }),
+  );
+});
 
 httpServer.listen(env.PORT, () => {
   console.log(JSON.stringify({ level: 'info', message: `API server running on port ${env.PORT}` }));

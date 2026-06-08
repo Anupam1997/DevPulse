@@ -10,6 +10,7 @@ COPY packages/utils/package.json ./packages/utils/
 RUN npm ci --workspace=@devpulse/api
 
 FROM base AS builder
+RUN apk add --no-cache openssl1.1-compat
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build --workspace=@devpulse/types
