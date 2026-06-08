@@ -19,6 +19,7 @@ RUN npm run build --workspace=@devpulse/db
 RUN npm run build --workspace=@devpulse/api
 
 FROM base AS runner
+RUN apk add --no-cache openssl1.1-compat
 ENV NODE_ENV=production
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/package.json ./apps/api/
