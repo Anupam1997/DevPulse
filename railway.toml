@@ -4,6 +4,6 @@
 builder = "DOCKERFILE"
 dockerfilePath = "apps/api/Dockerfile"
 
+# Healthcheck disabled — verify manually after deploy: GET /health and GET /health/ready
 [deploy]
-healthcheckPath = "/health"
-healthcheckTimeout = 120
+healthcheckPath = ""
